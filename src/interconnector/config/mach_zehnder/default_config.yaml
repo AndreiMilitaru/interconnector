@@ -1,0 +1,57 @@
+aux_limits:
+  laser:
+    center: 0
+    max: 0.1
+    min: -0.1
+  piezo:
+    center: 2.5
+    max: 5
+    min: 0
+calibration_paths:
+  lock_precision: \Users\UsemeAdmin\experiments\experiment_interface\config\mach_zehnder\calibrations\lock_precision
+  range: \Users\UsemeAdmin\experiments\experiment_interface\config\mach_zehnder\calibrations\range
+  visibility: \Users\UsemeAdmin\experiments\experiment_interface\config\mach_zehnder\calibrations\visibility
+demodulators:
+  input:
+    bandwidth: 20e3
+    demodulator: 0
+    order: 1
+    oscillator: 0
+    rate: 53.57e3
+  phase_drive:
+    drive_demodulator: 1
+    drive_amp: 1
+    drive_freq: 100
+    drive_oscillator: 1
+    rate: 53.57e3
+    trace_duration: 1
+device:
+  detector_offset: 0.02
+  id: dev30794
+pid:
+  laser:
+    aux: 3
+    center: 0
+    input: 1
+    inputchannel: 0
+    limit_lower: -0.1
+    limit_upper: 0.1
+    output: 5
+    params:
+    - 600e-3
+    - 0
+    - 0
+    pid_number: 3
+  piezo:
+    aux: 0
+    center: 2.5
+    input: 1
+    inputchannel: 0
+    limit_lower: -2.5
+    limit_upper: 2.5
+    output: 5
+    params:
+    - 0
+    - -5e3
+    - 0
+    pid_number: 0
