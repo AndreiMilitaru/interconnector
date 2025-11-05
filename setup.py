@@ -6,7 +6,7 @@ setup(
     author="Andrei Militaru",
     author_email="andrei.militaru@ist.ac.at",
     description="Laboratory automation and control toolkit for transduction experiments at ISTA",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/AndreiMilitaru/interconnector",
     package_dir={"": "src"},
@@ -29,4 +29,11 @@ setup(
         "pyyaml",
         # Add other dependencies
     ],
+    license="GPLv3",
+    include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "cavity-control=interconnector.gui.cavity_control:main_entry",
+        ],
+    },
 )

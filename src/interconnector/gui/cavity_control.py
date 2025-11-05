@@ -2199,8 +2199,8 @@ def main(mdrec=None, fg=None, device_id=None, dither_pid=None, dither_drive_demo
 
 
 def main_entry():
-    from experiment_interface.zhinst_utils.demodulation_recorder import zhinst_demod_recorder
-    from experiment_interface.control.device.function_generator import SingleOutput
+    from interconnector.zhinst_utils.demodulation_recorder import zhinst_demod_recorder
+    from interconnector.control.device.function_generator import SingleOutput
     import threading
 
     verbose = False
