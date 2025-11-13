@@ -8,6 +8,7 @@ Description: Main class to handle the Mach Zehnder stabilization system.
 import yaml
 import numpy as np
 from pathlib import Path
+import importlib.resources
 from datetime import datetime
 from typing import Optional, Dict
 import threading
@@ -40,7 +41,10 @@ class MachZehnderManager(MZManagerInterface):
         """
         print("Initializing manager...")
         self._mdrec = mdrec
-        self._config_path = Path(config_path or "../config/mach_zehnder")
+        if config_path is not None:
+            self._config_path = Path(config_path)
+        else:
+            self._config_path = Path(__file__).parent.parent.parent / "config" / "mach_zehnder"
         self._lock_check_interval = lock_check_interval
         self._monitoring_active = False
         self._monitor_thread = None

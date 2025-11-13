@@ -362,13 +362,13 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-testing_ZIAPI.ipynb
-/.ipynb_checkpoints/testing_ZIAPI-checkpoint.ipynb
-/utils/.ipynb_checkpoints/set_axes-checkpoint.py
-zhinst_utils/.DS_Store
-.DS_Store
+*testing_ZIAPI.ipynb
+*/.ipynb_checkpoints/testing_ZIAPI-checkpoint.ipynb
+*/utils/.ipynb_checkpoints/set_axes-checkpoint.py
+*zhinst_utils/.DS_Store
+*.DS_Store
 *__pycache__*
-/.ipynb_checkpoints/*
-config/mach_zehnder/calibrations/*
-quick_manage_test.ipynb
+*/.ipynb_checkpoints/*
+*config/mach_zehnder/calibrations/*
+*quick_manage_test.ipynb
 *cavity_logs*
