@@ -68,8 +68,8 @@ class CavityControlGUI(QMainWindow):
     def __init__(self, mdrec=None, fg=None, parent=None, device_id=None,
                   dither_pid=None, dither_drive_demod=None, dither_in_demod=None,
                   verbose=False, mdrec_lock=None, fg_lock=None, slow_offset=2,
-                  keep_offset_zero=True, mode_finding_settings=None, mid_baseline_threshold=2.0,
-                  locked_reflection_threshold=2.0, logfile=None):
+                  keep_offset_zero=True, mode_finding_settings=None, mid_baseline_threshold=0.7,
+                  locked_reflection_threshold=0.7, logfile=None):
         """Initialize the GUI with optional verbose mode"""
         super().__init__(parent)
         
@@ -544,219 +544,6 @@ class CavityControlGUI(QMainWindow):
         layout = QVBoxLayout(widget)
         
         # PID Parameters Group
-        pid_group = QGroupBox("Lock Control")
-        pid_layout = QGridLayout()
-
-        # P Gain
-        pid_layout.addWidget(QLabel("P Gain:"), 0, 0)
-        self.p_gain_spinbox = QDoubleSpinBox()
-        self.p_gain_spinbox.setRange(-1000000, 1000000)
-        self.p_gain_spinbox.setValue(0.0)
-        self.p_gain_spinbox.setDecimals(3)
-        self.p_gain_spinbox.setSingleStep(0.1)
-        self.p_gain_spinbox.setKeyboardTracking(False)  # Only update when Enter is pressed
-        self.p_gain_spinbox.valueChanged.connect(self.on_p_gain_changed)
-        pid_layout.addWidget(self.p_gain_spinbox, 0, 1)
-
-        # Start V (for mode finding) - next to P Gain
-        pid_layout.addWidget(QLabel("Mode Finding Start (V):"), 0, 2)
-        self.start_v_spinbox = QDoubleSpinBox()
-        self.start_v_spinbox.setRange(1.5, 6.5)
-        self.start_v_spinbox.setValue(2.5)
-        self.start_v_spinbox.setDecimals(2)
-        self.start_v_spinbox.setSingleStep(0.1)
-        self.start_v_spinbox.setKeyboardTracking(False)
-        pid_layout.addWidget(self.start_v_spinbox, 0, 3)
-
-        # I Gain
-        pid_layout.addWidget(QLabel("I Gain:"), 1, 0)
-        self.i_gain_spinbox = QDoubleSpinBox()
-        self.i_gain_spinbox.setRange(-1000000, 1000000)
-        self.i_gain_spinbox.setValue(0.0)
-        self.i_gain_spinbox.setDecimals(3)
-        self.i_gain_spinbox.setSingleStep(0.1)
-        self.i_gain_spinbox.setKeyboardTracking(False)  # Only update when Enter is pressed
-        self.i_gain_spinbox.valueChanged.connect(self.on_i_gain_changed)
-        pid_layout.addWidget(self.i_gain_spinbox, 1, 1)
-
-        # Stop V (for mode finding) - next to I Gain
-        pid_layout.addWidget(QLabel("Mode Finding Stop (V):"), 1, 2)
-        self.stop_v_spinbox = QDoubleSpinBox()
-        self.stop_v_spinbox.setRange(1.5, 6.5)
-        self.stop_v_spinbox.setValue(5.5)
-        self.stop_v_spinbox.setDecimals(2)
-        self.stop_v_spinbox.setSingleStep(0.1)
-        self.stop_v_spinbox.setKeyboardTracking(False)
-        pid_layout.addWidget(self.stop_v_spinbox, 1, 3)
-
-        # Bandwidth
-        pid_layout.addWidget(QLabel("Bandwidth (Hz):"), 2, 0)
-        self.bandwidth_spinbox = QDoubleSpinBox()
-        self.bandwidth_spinbox.setRange(0.1, 1000000)
-        self.bandwidth_spinbox.setValue(100.0)
-        self.bandwidth_spinbox.setDecimals(1)
-        self.bandwidth_spinbox.setSingleStep(10)
-        self.bandwidth_spinbox.setKeyboardTracking(False)  # Only update when Enter is pressed
-        self.bandwidth_spinbox.valueChanged.connect(self.on_bandwidth_changed)
-        pid_layout.addWidget(self.bandwidth_spinbox, 2, 1)
-
-        # Stop Routine button
-        self.stop_mode_button = QPushButton("Stop Routine")
-        self.stop_mode_button.clicked.connect(self.on_stop_mode_clicked)
-        self.stop_mode_button.setEnabled(False)  # Initially disabled
-        self.stop_mode_button.setVisible(False)  # Initially hidden
-        pid_layout.addWidget(self.stop_mode_button, 2, 2, 1, 2)
-
-        # PID Enable
-        pid_layout.addWidget(QLabel("PID Enable:"), 3, 0)
-        pid_enable_layout = QHBoxLayout()
-        self.pid_enable_checkbox = QCheckBox()
-        self.pid_enable_checkbox.setChecked(False)
-        self.pid_enable_checkbox.stateChanged.connect(self.on_pid_enable_changed)
-        pid_enable_layout.addWidget(self.pid_enable_checkbox)
-        pid_enable_layout.addStretch()
-        pid_layout.addLayout(pid_enable_layout, 3, 1)
-        
-        # Auto Offset Management checkbox
-        pid_layout.addWidget(QLabel("Offset adjustment:"), 3, 2)
-        self.auto_offset_checkbox = QCheckBox()
-        self.auto_offset_checkbox.setChecked(False)
-        self.auto_offset_checkbox.stateChanged.connect(self.on_auto_offset_changed)
-        pid_layout.addWidget(self.auto_offset_checkbox, 3, 3)
-        
-        # Keep I Value
-        pid_layout.addWidget(QLabel("Keep I Value:"), 4, 0)
-        keep_i_layout = QHBoxLayout()
-        self.keep_i_checkbox = QCheckBox()
-        self.keep_i_checkbox.setChecked(True)
-        self.keep_i_checkbox.stateChanged.connect(self.on_keep_i_changed)
-        keep_i_layout.addWidget(self.keep_i_checkbox)
-        keep_i_layout.addStretch()
-        pid_layout.addLayout(keep_i_layout, 4, 1)
-
-        # Monitor reflection checkbox
-        pid_layout.addWidget(QLabel("Monitor Reflection:"), 4, 2)
-        self.monitor_reflection_checkbox = QCheckBox()
-        self.monitor_reflection_checkbox.setChecked(False)
-        self.monitor_reflection_checkbox.stateChanged.connect(self.on_monitor_reflection_changed)
-        pid_layout.addWidget(self.monitor_reflection_checkbox, 4, 3)
-
-        # Find Mode button
-        self.find_mode_button = QPushButton("Find Mode")
-        self.find_mode_button.clicked.connect(self.on_find_mode_clicked)
-        self.find_mode_button.setMaximumWidth(100)
-        pid_layout.addWidget(self.find_mode_button, 5, 0, 1, 2)
-
-        # Auto mode finder checkbox
-        pid_layout.addWidget(QLabel("Auto mode finder:"), 5, 2)
-        self.auto_mode_finder_checkbox = QCheckBox()
-        self.auto_mode_finder_checkbox.setChecked(False)
-        self.auto_mode_finder_checkbox.stateChanged.connect(self.on_auto_mode_finder_changed)
-        pid_layout.addWidget(self.auto_mode_finder_checkbox, 5, 3)
-
-        pid_group.setLayout(pid_layout)
-        layout.addWidget(pid_group)
-
-        # Slow Offset Control Group (moved to top priority)
-        slow_offset_group = QGroupBox("Slow Offset Control (Aux3)")
-        slow_offset_layout = QGridLayout()
-        
-        # Slow Offset Voltage - main control
-        slow_offset_layout.addWidget(QLabel("Total Offset (V):"), 0, 0)
-        self.slow_offset_spinbox = QDoubleSpinBox()
-        self.slow_offset_spinbox.setRange(1.5, 6.5)  # Changed range to 1.5V-6.5V
-        self.slow_offset_spinbox.setDecimals(3)
-        self.slow_offset_spinbox.setSingleStep(0.01)
-        self.slow_offset_spinbox.setKeyboardTracking(False)
-        self.slow_offset_spinbox.valueChanged.connect(self.on_slow_offset_changed)
-        slow_offset_layout.addWidget(self.slow_offset_spinbox, 0, 1)
-
-        # Rough adjustment slider
-        self.slow_offset_slider = QSlider(Qt.Horizontal)
-        self.slow_offset_slider.setRange(150, 650)  # 1.5V to 6.5V with 0.01V resolution
-        self.slow_offset_slider.setTickPosition(QSlider.TicksBelow)
-        self.slow_offset_slider.setTickInterval(100)  # Ticks every 1V
-        self.slow_offset_slider.valueChanged.connect(self.on_slow_offset_slider_changed)
-        slow_offset_layout.addWidget(self.slow_offset_slider, 1, 0, 1, 2)
-        
-        # Fine adjustment slider
-        slow_offset_layout.addWidget(QLabel("Fine Adjustment (mV):"), 2, 0)
-        self.slow_offset_fine_slider = QSlider(Qt.Horizontal)
-        self.slow_offset_fine_slider.setRange(-25, 25)  # -25mV to +25mV fine adjustment
-        self.slow_offset_fine_slider.setValue(0)
-        self.slow_offset_fine_slider.setTickPosition(QSlider.TicksBelow)
-        self.slow_offset_fine_slider.setTickInterval(5)  # Ticks every 5mV
-        self.slow_offset_fine_slider.valueChanged.connect(self.on_slow_offset_fine_changed)
-        slow_offset_layout.addWidget(self.slow_offset_fine_slider, 2, 1)
-        
-        # Fine adjustment value display
-        self.slow_offset_fine_label = QLabel("0.0 mV")
-        slow_offset_layout.addWidget(self.slow_offset_fine_label, 3, 1)
-        
-        slow_offset_group.setLayout(slow_offset_layout)
-        layout.addWidget(slow_offset_group)
-        
-        # Output Settings Group (moved below slow offset)
-        output_group = QGroupBox("Output Settings")
-        output_layout = QGridLayout()
-
-        # Output Signal Offset (now shows total including fine adjustment)
-        output_layout.addWidget(QLabel("Total Output (V):"), 0, 0)
-        self.offset_spinbox = QDoubleSpinBox()
-        self.offset_spinbox.setRange(0, 1.0)  # Changed from 5.0 to 1.0
-        # Default to 0.5V instead of 2V for better starting point in new range
-        self.offset_spinbox.setValue(0.5)
-        self.offset_spinbox.setDecimals(3)
-        self.offset_spinbox.setSingleStep(0.01)
-        self.offset_spinbox.setKeyboardTracking(False)
-        self.offset_spinbox.valueChanged.connect(self.on_offset_changed)
-        output_layout.addWidget(self.offset_spinbox, 0, 1)
-
-        # Add a slider for visual control of offset 
-        self.offset_slider = QSlider(Qt.Horizontal)
-        self.offset_slider.setRange(0, 100)  # Changed from 500 to 100 for 0-1V with 0.01V resolution
-        self.offset_slider.setValue(50)  # Default to 0.5V (matching spinbox)
-        self.offset_slider.valueChanged.connect(self.on_offset_slider_changed)
-        output_layout.addWidget(self.offset_slider, 1, 0, 1, 2)
-
-        # Fine offset adjustment
-        output_layout.addWidget(QLabel("Fine Adjustment (mV):"), 2, 0)
-        self.fine_offset_slider = QSlider(Qt.Horizontal)
-        self.fine_offset_slider.setRange(-25, 25)  # -25mV to +25mV (each step is 1mV)
-        self.fine_offset_slider.setValue(0)
-        self.fine_offset_slider.setTickPosition(QSlider.TicksBelow)
-        self.fine_offset_slider.setTickInterval(5)  # Ticks at -25, -20, ..., 20, 25 mV
-        self.fine_offset_slider.valueChanged.connect(self.on_fine_offset_slider_changed)
-        output_layout.addWidget(self.fine_offset_slider, 2, 1)
-        
-        # Fine offset value display
-        self.fine_offset_label = QLabel("0.0 mV")
-        output_layout.addWidget(self.fine_offset_label, 3, 1)
-        
-        # Store the base offset (without fine adjustment) as an instance variable
-        self.base_offset = 0.5  # Default to 0.5V instead of 2.0V
-
-        # Remove the separate Total Output display since spinbox now shows total
-
-        output_group.setLayout(output_layout)
-        layout.addWidget(output_group)
-
-        # Add stretch to push controls to the top
-        layout.addStretch()
-
-        # Set initial state of offset based on PID enable
-        self.update_offset_spinbox_state()
-
-        return widget
-    
-    def create_pid_controls(self):
-        """Create PID controller controls"""
-        widget = QWidget()
-        
-        # Use a QVBoxLayout to arrange groups vertically
-        layout = QVBoxLayout(widget)
-        
-        # PID Parameters Group
         pid_group = QGroupBox("PID Parameters")
         pid_layout = QGridLayout()
 
@@ -1209,6 +996,7 @@ class CavityControlGUI(QMainWindow):
         
         # Apply to device if PID is disabled
         if not self.pid_enable_checkbox.isChecked():
+            self.logger.info(f"Fine adjustment: {fine_offset_v:+.1f} V, total offset: {total_offset_v:.3f} V")
             with self.mdrec_lock:
                 self.mdrec.lock_in.set(f'/{self.device_id}/sigouts/0/offset', total_offset_v)
             self.output_value_label.setText(f"{total_offset_v:.3f} V")
@@ -1274,7 +1062,7 @@ class CavityControlGUI(QMainWindow):
             
             self.logger.info(f"Setting output offset to {offset_value:.3f} V on PID disable")
             
-            # Reset fine offset slider to 0
+            # Reset fine adjustment to 0
             self.fine_offset_slider.blockSignals(True)
             self.fine_offset_slider.setValue(0)
             self.fine_offset_label.setText("0.0 mV")
@@ -1499,7 +1287,7 @@ class CavityControlGUI(QMainWindow):
         self.logger.info(f"Slow offset slider changed to {total_offset_v:.3f} V")
         with self.mdrec_lock:
             self.mdrec.lock_in.set(f'/{self.device_id}/auxouts/{self.slow_offset}/offset', total_offset_v)
-    
+
     @pyqtSlot(int)
     def on_slow_offset_fine_changed(self, value):
         """Handle slow offset fine slider change"""
@@ -1757,7 +1545,7 @@ class CavityControlGUI(QMainWindow):
     
     
     def _ramp_slow_offset(self, direction='up'):
-        """Ramp the slow offset up or down by 15mV in 1mV steps"""
+        """Ramp the slow offset up or down by 15mV in 0.5mV steps, and adjust total output by 30mV"""
         # Use helper method for thread-safe button updates
         self._update_button_from_thread(
             text="Stop Offset Adjustment",
@@ -1774,14 +1562,23 @@ class CavityControlGUI(QMainWindow):
             return
         
         try:
+            # Store initial PID state
+            was_pid_enabled = self.pid_enable_checkbox.isChecked()
+            
             # Disable slow offset controls during ramping - thread-safe
             QMetaObject.invokeMethod(self.slow_offset_spinbox, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, False))
             QMetaObject.invokeMethod(self.slow_offset_slider, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, False))
             QMetaObject.invokeMethod(self.slow_offset_fine_slider, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, False))
 
-            step = 0.0005  # 0.5mV step
+            slow_step = 0.0005  # 0.5mV step for slow offset
+            output_step = 0.015  # 15mV step for total output
             if direction == 'down':
-                step = -step
+                slow_step = -slow_step
+                output_step = -output_step
+            
+            # Store previous values for rollback
+            prev_slow = self.get_mdrec_slow_offset()
+            prev_output = self.get_mdrec_output_offset()
             
             # Perform 30 steps
             for i in range(30):
@@ -1791,14 +1588,43 @@ class CavityControlGUI(QMainWindow):
                     
                 # Get current slow offset and calculate new value
                 current_slow = self.get_mdrec_slow_offset()
-                new_slow = max(1.5, min(6.5, current_slow + step))
+                new_slow = max(1.5, min(6.5, current_slow + slow_step))
+                
+                # Get current output offset and calculate new value
+                current_output = self.get_mdrec_output_offset()
+                # Temporarily disable PID if it was enabled
+                if was_pid_enabled:
+                    self.logger.info("Temporarily disabling PID for offset adjustment")
+                    self.disable_pid()
+                    time.sleep(0.1)  # Brief pause for PID to settle
+
+                new_output = max(0.0, min(1.0, current_output + output_step))
+
+                # Update slow offset
+                self.set_slow_offset(new_slow)
+                
+                # Update total output offset (PID is disabled, so we can set it directly)
+                with self.mdrec_lock:
+                    self.mdrec.lock_in.set(f'/{self.device_id}/sigouts/0/offset', new_output)
+
+                # Re-enable PID if it was enabled before
+                if was_pid_enabled:
+                    self.logger.info("Re-enabling PID after offset adjustment")
+                    self.enable_pid()
+                    time.sleep(0.1)  # Brief pause for PID to engage
                 
                 # Temporarily re-enable controls for set_slow_offset to update GUI
                 QMetaObject.invokeMethod(self.slow_offset_spinbox, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, True))
                 QMetaObject.invokeMethod(self.slow_offset_slider, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, True))
                 QMetaObject.invokeMethod(self.slow_offset_fine_slider, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, True))
                 
-                self.set_slow_offset(new_slow)
+                # Update GUI controls for output offset - thread-safe
+                QMetaObject.invokeMethod(self.offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, new_output))
+                QMetaObject.invokeMethod(self.output_value_label, "setText", Qt.QueuedConnection, Q_ARG(str, f"{new_output:.3f} V"))
+                
+                # Update base offset and slider
+                self.base_offset = new_output
+                QMetaObject.invokeMethod(self.offset_slider, "setValue", Qt.QueuedConnection, Q_ARG(int, int(new_output * 100)))
                 
                 # Re-disable controls
                 QMetaObject.invokeMethod(self.slow_offset_spinbox, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, False))
@@ -1807,12 +1633,46 @@ class CavityControlGUI(QMainWindow):
                 
                 # Update status - thread-safe
                 direction_text = "up" if direction == 'up' else "down"
-                status_text = f"Ramping {direction_text}: {new_slow:.3f}V (step {i+1}/30)"
+                status_text = f"Ramping {direction_text}: slow={new_slow:.3f}V, output={new_output:.3f}V (step {i+1}/30)"
                 QMetaObject.invokeMethod(self.auto_offset_status_label, "setText", Qt.QueuedConnection, Q_ARG(str, status_text))
-                self.logger.info(f"Ramping {direction_text}: step {i+1}/30, slow_offset = {new_slow:.3f}V")
+                self.logger.info(f"Ramping {direction_text}: step {i+1}/30, slow_offset={new_slow:.3f}V, total_output={new_output:.3f}V")
 
-                # Wait 3 seconds before next step
-                time.sleep(3.0)
+                # Wait 1 second before checking lock
+                time.sleep(1.0)
+                
+                # Check if cavity is still locked after the step
+                if was_pid_enabled and not self.is_cavity_locked():
+                    self.logger.warning(f"Lock lost after step {i+1}, reverting to previous values")
+                    
+                    # Disable PID for rollback
+                    self.disable_pid()
+                    time.sleep(0.1)
+                    
+                    # Revert to previous values
+                    self.set_slow_offset(prev_slow)
+                    with self.mdrec_lock:
+                        self.mdrec.lock_in.set(f'/{self.device_id}/sigouts/0/offset', prev_output)
+                    
+                    # Update GUI with reverted values
+                    QMetaObject.invokeMethod(self.offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, prev_output))
+                    QMetaObject.invokeMethod(self.output_value_label, "setText", Qt.QueuedConnection, Q_ARG(str, f"{prev_output:.3f} V"))
+                    self.base_offset = prev_output
+                    QMetaObject.invokeMethod(self.offset_slider, "setValue", Qt.QueuedConnection, Q_ARG(int, int(prev_output * 100)))
+                    
+                    # Re-enable PID
+                    self.enable_pid()
+                    
+                    # Update status
+                    status_text = f"Lock lost, reverted to slow={prev_slow:.3f}V, output={prev_output:.3f}V"
+                    QMetaObject.invokeMethod(self.auto_offset_status_label, "setText", Qt.QueuedConnection, Q_ARG(str, status_text))
+                    self.logger.info(f"Reverted: slow_offset={prev_slow:.3f}V, total_output={prev_output:.3f}V")
+                    
+                    # Stop ramping if lock is lost
+                    i -= 1  # Decrement step counter to retry the same step after reverting
+                else:
+                    # Step was successful, update previous values for next iteration
+                    prev_slow = new_slow
+                    prev_output = new_output
             
             # Re-enable slow offset controls after ramping - thread-safe
             QMetaObject.invokeMethod(self.slow_offset_spinbox, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, True))
@@ -1904,8 +1764,7 @@ class CavityControlGUI(QMainWindow):
         if (np.max(wave) - np.min(wave)) < self.mid_baseline_threshold:
             return np.inf  # No signal detected
         
-        idxs = peakutils.indexes(-wave, thres=0.5, min_dist=50)
-        
+        idxs = peakutils.indexes(-wave, thres=-1.0, thres_abs=True, min_dist=150)
         # Check if we have enough peaks to calculate spacing
         if len(idxs) < 5:
             # self.log(f'Not enough peaks found: {len(idxs)}')
@@ -1920,8 +1779,8 @@ class CavityControlGUI(QMainWindow):
         # self.log(f'Peak spacings (samples): {spacings}')
         return np.std(spacings) / np.mean(spacings)
 
-    def mode_finding_routine(self, step_v=0.01, delay_s=0.1, regularity_threshold=0.25, 
-                           fine_step=0.01, fine_regularity_threshold=0.2):
+    def mode_finding_routine(self, step_v=0.005, delay_s=0.05, regularity_threshold=0.4, 
+                           fine_step=0.01, fine_regularity_threshold=0.4):
         """Finding the cavity mode"""
         self.mode_finding_stop_requested = False  # Reset flag
         # Use helper method for thread-safe button updates
@@ -1984,6 +1843,13 @@ class CavityControlGUI(QMainWindow):
                         self.slow_offset_slider, self.slow_offset_fine_slider, self.slow_offset_spinbox,
                         self.offset_slider, self.fine_offset_slider, self.offset_spinbox]:
                 QMetaObject.invokeMethod(widget, "setEnabled", Qt.QueuedConnection, Q_ARG(bool, False))
+
+            # Center Total Offset to 500mV before starting the routine
+            self.logger.info('Centering Total Offset to 500 mV...')
+            QMetaObject.invokeMethod(self.fine_offset_slider, "setValue", Qt.QueuedConnection, Q_ARG(int, 0))
+            QMetaObject.invokeMethod(self.offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, 0.5))
+            time.sleep(0.5)  # Wait for offset to settle
+            self.logger.info('Total Offset centered at 500 mV.\n\n')
 
             self.logger.info('Starting rough alignment phase...\n\n')
             
@@ -2128,6 +1994,7 @@ class CavityControlGUI(QMainWindow):
         mean_val, std_val = self.get_average_reflection(length=16384)
         return (np.abs(mean_val) < self.locked_reflection_threshold)
 
+
     def get_average_reflection(self, length=4096, inputselect=9, sampling=9):
         """Get average reflection signal from the device"""
         # Don't acquire lock here - read_scope_data will handle it
@@ -2184,8 +2051,8 @@ class CavityControlGUI(QMainWindow):
 
 # Example usage:
 def main(mdrec=None, fg=None, device_id=None, dither_pid=None, dither_drive_demod=None, 
-         dither_in_demod=None, verbose=False, mdrec_lock=None, fg_lock=None, slow_offset=2, 
-         keep_offset_zero=True, mode_finding_settings=None, logfile=None):
+         dither_in_demod=None, verbose=False, mdrec_lock=None, fg_lock=None, slow_offset=2, mid_baseline_threshold=0.7, 
+         keep_offset_zero=True, mode_finding_settings=None, logfile=None, locked_reflection_threshold=0.8):
     """Main function to run the Cavity Control GUI"""
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
@@ -2193,7 +2060,8 @@ def main(mdrec=None, fg=None, device_id=None, dither_pid=None, dither_drive_demo
     window = CavityControlGUI(mdrec=mdrec, fg=fg, device_id=device_id, dither_pid=dither_pid,
                               dither_drive_demod=dither_drive_demod, dither_in_demod=dither_in_demod,
                               verbose=verbose, mdrec_lock=mdrec_lock, fg_lock=fg_lock, logfile=logfile,
-                              slow_offset=slow_offset, keep_offset_zero=keep_offset_zero, mode_finding_settings=mode_finding_settings)
+                              slow_offset=slow_offset, keep_offset_zero=keep_offset_zero, mid_baseline_threshold=mid_baseline_threshold,
+                              mode_finding_settings=mode_finding_settings, locked_reflection_threshold=locked_reflection_threshold)
     window.show()
     sys.exit(app.exec_())
 
@@ -2215,9 +2083,12 @@ def main_entry():
     dither_in_demod = 3
     slow_offset = 2  # auxout2 corresponds to Aux3 on device
 
+    locked_reflection_threshold = 0.8  # Threshold for considering the cavity locked (in V)
+    mid_baseline_threshold = 0.5  # Threshold for considering no signal in mode finding (in V)
+
     mode_finding_settings = {
-        'fg_amplitude_mv': 1000.0, 
-        'fg_amplitude_frequency_hz': 120.0
+        'fg_amplitude_mv': 400.0, 
+        'fg_amplitude_frequency_hz': 40.0
     }
     
     # Use VISA resource string for function generator
@@ -2240,7 +2111,8 @@ def main_entry():
         main(mdrec=mdrec, fg=fg, device_id=device_id, dither_pid=pid_dither,    
             dither_drive_demod=dither_drive_demod, dither_in_demod=dither_in_demod,
             verbose=verbose, mdrec_lock=mdrec_lock, fg_lock=fg_lock, logfile=logfile,
-            slow_offset=slow_offset, keep_offset_zero=keep_offset_zero, mode_finding_settings=mode_finding_settings)
+            slow_offset=slow_offset, keep_offset_zero=keep_offset_zero, mid_baseline_threshold=mid_baseline_threshold,
+            mode_finding_settings=mode_finding_settings, locked_reflection_threshold=locked_reflection_threshold)
     except Exception as e:
         # Use logging for error handling too
         logging.error(f"Error running Cavity Control GUI: {e}", exc_info=True)
