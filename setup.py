@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="interconnector",
-    version="0.1.0",
+    version="0.2.0",
     author="Andrei Militaru",
     author_email="andrei.militaru@ist.ac.at",
     description="Laboratory automation and control toolkit for transduction experiments at ISTA",
@@ -12,7 +12,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
@@ -36,6 +36,9 @@ setup(
     entry_points={
         "console_scripts": [
             "cavity-control=interconnector.gui.cavity_control:main_entry",
+            "interferometer-control=interconnector.gui.interferometer_control:main_entry",
+            "joint-control=interconnector.gui.joint_control:main_entry",
+            "adaptive-lock=interconnector.gui.adaptive_laser_lock_gui:main_entry",
         ],
     },
 )
