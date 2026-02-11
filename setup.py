@@ -21,13 +21,15 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "numpy",
+        "scipy",
         "PyQt5",
         "peakutils",
         "matplotlib",
+        "h5py",
         "zhinst",
         "pyvisa",
         "pyyaml",
-        # Add other dependencies
+        "mdt69x",
     ],
     license="GPLv3",
     include_package_data=True,

@@ -13,13 +13,13 @@ from datetime import datetime
 from typing import Optional, Dict
 import threading
 import time
-from mach_zehnder_utils.phase_calibration import (
+from interconnector.mach_zehnder_utils.phase_calibration import (
     calibrate_range, evaluate_visibility, evaluate_lock_precision, toggle_locks
 )
-from mach_zehnder_utils.mach_zehnder_lock import (
+from interconnector.mach_zehnder_utils.mach_zehnder_lock import (
     set_demodulators, set_aux_limits, set_pid_params, set_setpoint, check_locks
 )
-from mach_zehnder_utils.manager_interface import MZManagerInterface
+from interconnector.mach_zehnder_utils.manager_interface import MZManagerInterface
 
 class MachZehnderManager(MZManagerInterface):
     """Class to manage Mach Zehnder stabilization system."""

@@ -372,3 +372,7 @@ FodyWeavers.xsd
 *config/mach_zehnder/calibrations/*
 *quick_manage_test.ipynb
 *cavity_logs*
+*interferometer_logs*
+*adaptive_laser_locks_logs*
+*photon_counting_data*
+*Z_basis_photon_counting_data*

@@ -1637,8 +1637,8 @@ class CavityControlGUI(QMainWindow):
                 QMetaObject.invokeMethod(self.auto_offset_status_label, "setText", Qt.QueuedConnection, Q_ARG(str, status_text))
                 self.logger.info(f"Ramping {direction_text}: step {i+1}/30, slow_offset={new_slow:.3f}V, total_output={new_output:.3f}V")
 
-                # Wait 1 second before checking lock
-                time.sleep(1.0)
+                # Wait 2 second before checking lock
+                time.sleep(2.0)
                 
                 # Check if cavity is still locked after the step
                 if was_pid_enabled and not self.is_cavity_locked():
@@ -1754,7 +1754,7 @@ class CavityControlGUI(QMainWindow):
         if (np.max(wave) - np.min(wave)) < self.mid_baseline_threshold:
             return 0  # No signal detected
         
-        idxs = peakutils.indexes(-wave, thres=0.5, min_dist=50)
+        idxs = peakutils.indexes(-wave, thres=-0.7, thres_abs=True, min_dist=150)
         num_peaks = len(idxs)
         # self.log(f'Number of peaks found: {num_peaks}')
         return num_peaks
@@ -1764,7 +1764,7 @@ class CavityControlGUI(QMainWindow):
         if (np.max(wave) - np.min(wave)) < self.mid_baseline_threshold:
             return np.inf  # No signal detected
         
-        idxs = peakutils.indexes(-wave, thres=-1.0, thres_abs=True, min_dist=150)
+        idxs = peakutils.indexes(-wave, thres=-0.7, thres_abs=True, min_dist=150)
         # Check if we have enough peaks to calculate spacing
         if len(idxs) < 5:
             # self.log(f'Not enough peaks found: {len(idxs)}')
@@ -1992,7 +1992,21 @@ class CavityControlGUI(QMainWindow):
     def is_cavity_locked(self):
         """Check if the cavity is locked based on reflection signal"""
         mean_val, std_val = self.get_average_reflection(length=16384)
-        return (np.abs(mean_val) < self.locked_reflection_threshold)
+        is_locked = (np.abs(mean_val) < self.locked_reflection_threshold)
+        
+        # If locked, update mode finding start/stop values around current slow offset
+        if is_locked:
+            current_slow_offset = self.slow_offset_spinbox.value()
+            # Set start to 50mV (0.05V) before current value
+            start_value = max(1.5, current_slow_offset - 0.05)
+            # Set stop to 50mV (0.05V) after current value
+            stop_value = min(6.5, current_slow_offset + 0.05)
+            
+            # Update spinboxes (thread-safe)
+            QMetaObject.invokeMethod(self.start_v_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, start_value))
+            QMetaObject.invokeMethod(self.stop_v_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, stop_value))
+        
+        return is_locked
 
 
     def get_average_reflection(self, length=4096, inputselect=9, sampling=9):
