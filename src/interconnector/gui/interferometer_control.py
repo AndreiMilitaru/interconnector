@@ -158,7 +158,7 @@ class InterferometerControlGUI(QMainWindow):
         self.pid_enable_checkbox.stateChanged.connect(self.on_pid_enable_changed)
         grid.addWidget(self.pid_enable_checkbox, 0, 1)
 
-        # Setpoint (V) – same value applied to both PIDs
+        # Setpoint (V) - same value applied to both PIDs
         grid.addWidget(QLabel("Setpoint (V):"), 1, 0)
         self.setpoint_spinbox = QDoubleSpinBox()
         self.setpoint_spinbox.setRange(-10.0, 10.0)
@@ -168,7 +168,7 @@ class InterferometerControlGUI(QMainWindow):
         self.setpoint_spinbox.valueChanged.connect(self.on_setpoint_changed)
         grid.addWidget(self.setpoint_spinbox, 1, 1)
 
-        # Bandwidth (kHz) – same value applied to both PIDs
+        # Bandwidth (kHz) - same value applied to both PIDs
         grid.addWidget(QLabel("Bandwidth (kHz):"), 2, 0)
         self.bandwidth_spinbox = QDoubleSpinBox()
         self.bandwidth_spinbox.setRange(0.001, 500.0)
@@ -361,7 +361,7 @@ class InterferometerControlGUI(QMainWindow):
         self.btn_cavity.setChecked(current == 9)
 
     # ------------------------------------------------------------------
-    # Event handlers – Control
+    # Event handlers - Control
     # ------------------------------------------------------------------
     @pyqtSlot(int)
     def on_pid_enable_changed(self, state):
@@ -388,7 +388,7 @@ class InterferometerControlGUI(QMainWindow):
                 f'/{self.device_id}/pids/{self.laser_pid}/demod/timeconstant', tc)
 
     # ------------------------------------------------------------------
-    # Event handlers – Parameters
+    # Event handlers - Parameters
     # ------------------------------------------------------------------
     @pyqtSlot(float)
     def on_piezo_p_changed(self, value):
@@ -411,7 +411,7 @@ class InterferometerControlGUI(QMainWindow):
         self._set_pid_param(self.laser_pid, 'i', value)
 
     # ------------------------------------------------------------------
-    # Event handlers – Viewing
+    # Event handlers - Viewing
     # ------------------------------------------------------------------
     @pyqtSlot()
     def on_interferometer_clicked(self):
@@ -473,7 +473,7 @@ def main(mdrec=None, device_id=None, piezo_pid=0, laser_pid=3,
 
 
 def main_entry():
-    """Standalone entry point – creates its own mdrec connection."""
+    """Standalone entry point - creates its own mdrec connection."""
     from interconnector.zhinst_utils.demodulation_recorder import zhinst_demod_recorder
 
     verbose = False

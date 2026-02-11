@@ -1489,7 +1489,7 @@ Example
 -------
 ::
     
-    # sets the programmable trigger output to 10 * 100ns = 1µs
+    # sets the programmable trigger output to 10 * 100ns = 1us
     sn.device.setTriggerOutput(10)
     
         """
@@ -1583,7 +1583,7 @@ a previous marker within the hold-off time.
 Note
 ----
     Only meaningful in :obj:`.MeasMode.T2` and :obj:`.MeasMode.T3`.
-    The actual hold-off time is only approximated to about ±20ns.
+    The actual hold-off time is only approximated to about +/-20ns.
 
 Parameters
 ----------

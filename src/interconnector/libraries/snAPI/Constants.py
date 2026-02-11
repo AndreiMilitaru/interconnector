@@ -116,8 +116,8 @@ Note
     used for any kind of coincidence detection, such as coincidence counting and correlation for,
     e.g., antibunching in a HBT set-up. Two pieces of information are collected for each event:
     
-    • The elapsed time since the start of the measurement
-    • The channel at which the event has been detected
+    - The elapsed time since the start of the measurement
+    - The channel at which the event has been detected
     
     """
 
@@ -133,9 +133,9 @@ and can provide more effective data encoding for many applications. This mode is
 for luminescence lifetime imaging and fluorescence correlation spectroscopy. Three different pieces
 of information are recorded for each detected event:
 
-• The start-stop time difference (similar to classic  TCSPC)
-• The number of elapsed sync pulses since measure ment start
-• The channel at which the event has been detected
+- The start-stop time difference (similar to classic  TCSPC)
+- The number of elapsed sync pulses since measure ment start
+- The channel at which the event has been detected
     
     """
 

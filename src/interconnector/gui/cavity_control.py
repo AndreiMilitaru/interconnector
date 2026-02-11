@@ -780,7 +780,7 @@ class CavityControlGUI(QMainWindow):
         # Amplitude fine adjustment
         fg_layout.addWidget(QLabel("Fine Adjustment (mV):"), 2, 0)
         self.amplitude_fine_slider = QSlider(Qt.Horizontal)
-        self.amplitude_fine_slider.setRange(-50, 50)  # ±50mV adjustment
+        self.amplitude_fine_slider.setRange(-50, 50)  # +/-50mV adjustment
         self.amplitude_fine_slider.setValue(0)
         self.amplitude_fine_slider.setTickPosition(QSlider.TicksBelow)
         self.amplitude_fine_slider.setTickInterval(10)
@@ -805,7 +805,7 @@ class CavityControlGUI(QMainWindow):
         # Auto-calculated offset display
         fg_layout.addWidget(QLabel("Total Offset (mV):"), 5, 0)
         self.fg_offset_spinbox = QDoubleSpinBox()
-        self.fg_offset_spinbox.setRange(-5000.0, 5000.0)  # ±5V in mV
+        self.fg_offset_spinbox.setRange(-5000.0, 5000.0)  # +/-5V in mV
         self.fg_offset_spinbox.setValue(0.0)
         self.fg_offset_spinbox.setDecimals(1)
         self.fg_offset_spinbox.setButtonSymbols(QDoubleSpinBox.NoButtons)
@@ -1713,9 +1713,9 @@ class CavityControlGUI(QMainWindow):
                 mean_val, std_val = self.get_average_reflection()
                 # Format message
                 if np.abs(mean_val) < 1:
-                    message = f"{mean_val/1e-3:.3f} ± {std_val/1e-3:.3f} mV"
+                    message = f"{mean_val/1e-3:.3f} +/- {std_val/1e-3:.3f} mV"
                 else: 
-                    message = f"{mean_val:.3f} ± {std_val:.3f} V"
+                    message = f"{mean_val:.3f} +/- {std_val:.3f} V"
                 self.logger.info(message)
                 # Use thread-safe GUI update
                 QMetaObject.invokeMethod(

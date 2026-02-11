@@ -76,7 +76,7 @@ class CavityControlGUI(QMainWindow):
         
         # Fine slider (-5 to +5V in 1mV steps)
         fine_layout = QHBoxLayout()
-        fine_label = QLabel("Fine (±5V):")
+        fine_label = QLabel("Fine (+/-5V):")
         fine_label.setMinimumWidth(120)
         
         self.fine_slider = QSlider(Qt.Horizontal)

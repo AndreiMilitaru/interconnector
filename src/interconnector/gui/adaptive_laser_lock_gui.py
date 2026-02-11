@@ -211,7 +211,7 @@ class AdaptiveLockGUI(QMainWindow):
         laser_layout = QHBoxLayout()
         laser_layout.addWidget(QLabel("Offset (V):"))
         
-        self.laser_down_btn = QPushButton("◄")
+        self.laser_down_btn = QPushButton("<")
         self.laser_down_btn.setMaximumWidth(30)
         self.laser_down_btn.pressed.connect(lambda: self.start_laser_adjust(-1))
         self.laser_down_btn.released.connect(self.stop_laser_adjust)
@@ -225,7 +225,7 @@ class AdaptiveLockGUI(QMainWindow):
         self.laser_spinbox.valueChanged.connect(self.on_laser_manual_change)
         laser_layout.addWidget(self.laser_spinbox)
         
-        self.laser_up_btn = QPushButton("►")
+        self.laser_up_btn = QPushButton(">")
         self.laser_up_btn.setMaximumWidth(30)
         self.laser_up_btn.pressed.connect(lambda: self.start_laser_adjust(+1))
         self.laser_up_btn.released.connect(self.stop_laser_adjust)
@@ -240,7 +240,7 @@ class AdaptiveLockGUI(QMainWindow):
         cavity_layout = QHBoxLayout()
         cavity_layout.addWidget(QLabel("Position (V):"))
         
-        self.cavity_down_btn = QPushButton("◄")
+        self.cavity_down_btn = QPushButton("<")
         self.cavity_down_btn.setMaximumWidth(30)
         self.cavity_down_btn.pressed.connect(lambda: self.start_cavity_adjust(-1))
         self.cavity_down_btn.released.connect(self.stop_cavity_adjust)
@@ -254,7 +254,7 @@ class AdaptiveLockGUI(QMainWindow):
         self.cavity_spinbox.valueChanged.connect(self.on_cavity_manual_change)
         cavity_layout.addWidget(self.cavity_spinbox)
         
-        self.cavity_up_btn = QPushButton("►")
+        self.cavity_up_btn = QPushButton(">")
         self.cavity_up_btn.setMaximumWidth(30)
         self.cavity_up_btn.pressed.connect(lambda: self.start_cavity_adjust(+1))
         self.cavity_up_btn.released.connect(self.stop_cavity_adjust)
