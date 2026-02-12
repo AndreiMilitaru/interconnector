@@ -1523,14 +1523,17 @@ class CavityControlGUI(QMainWindow):
                 current_offset = self.get_mdrec_output_offset()
                 
                 # Check if ramping is needed
-                if current_offset < 0.05:
-                    self.logger.info(f"Output offset {current_offset:.3f}V below threshold, starting ramp up")
-                    self._ramp_slow_offset(direction='up')
-                elif current_offset > 0.95:
-                    self.logger.info(f"Output offset {current_offset:.3f}V above threshold, starting ramp down")
-                    self._ramp_slow_offset(direction='down')
+                if self.is_cavity_locked():
+                    if current_offset < 0.05:
+                        self.logger.info(f"Output offset {current_offset:.3f}V below threshold, starting ramp up")
+                        self._ramp_slow_offset(direction='up')
+                    elif current_offset > 0.95:
+                        self.logger.info(f"Output offset {current_offset:.3f}V above threshold, starting ramp down")
+                        self._ramp_slow_offset(direction='down')
+                    else:
+                        self.auto_offset_status_label.setText(f"Monitoring")
                 else:
-                    self.auto_offset_status_label.setText(f"Monitoring")
+                    self.auto_offset_status_label.setText("Cavity Unlocked, no adjustment")
                 
             except Exception as e:
                 self.logger.error(f"Error in auto offset management: {e}")
