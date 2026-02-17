@@ -18,6 +18,7 @@ from pathlib import Path
 from datetime import datetime
 
 from interconnector.mach_zehnder_utils.mach_zehnder_lock import df2tc
+from interconnector.zhinst_utils.scope_settings import get_data_scope
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QDoubleSpinBox, QCheckBox, QPushButton,
@@ -79,6 +80,10 @@ class InterferometerControlGUI(QMainWindow):
         self.piezo_pid = piezo_pid
         self.laser_pid = laser_pid
         self.mdrec_lock = mdrec_lock
+
+        # Initialize reflection monitoring thread control
+        self.reflection_thread = None
+        self.reflection_thread_running = False
 
         self.init_ui()
 
@@ -177,6 +182,13 @@ class InterferometerControlGUI(QMainWindow):
         self.bandwidth_spinbox.setKeyboardTracking(False)
         self.bandwidth_spinbox.valueChanged.connect(self.on_bandwidth_changed)
         grid.addWidget(self.bandwidth_spinbox, 2, 1)
+
+        # Monitor Reflection checkbox
+        grid.addWidget(QLabel("Monitor Reflection:"), 3, 0)
+        self.monitor_reflection_checkbox = QCheckBox()
+        self.monitor_reflection_checkbox.setChecked(False)
+        self.monitor_reflection_checkbox.stateChanged.connect(self.on_monitor_reflection_changed)
+        grid.addWidget(self.monitor_reflection_checkbox, 3, 1)
 
         group.setLayout(grid)
         return group
@@ -329,16 +341,25 @@ class InterferometerControlGUI(QMainWindow):
 
         try:
             # Read from piezo PID (use as reference for shared params)
-            self.pid_enable_checkbox.setChecked(self.get_pid_enabled(self.piezo_pid))
-            self.setpoint_spinbox.setValue(self.get_pid_setpoint(self.piezo_pid))
-            self.bandwidth_spinbox.setValue(self.get_pid_bandwidth(self.piezo_pid))
+            pid_enabled = self.get_pid_enabled(self.piezo_pid)
+            setpoint = self.get_pid_setpoint(self.piezo_pid)
+            bandwidth = self.get_pid_bandwidth(self.piezo_pid)
+            piezo_p = self.get_pid_p(self.piezo_pid)
+            piezo_i = self.get_pid_i(self.piezo_pid)
+            laser_p = self.get_pid_p(self.laser_pid)
+            laser_i = self.get_pid_i(self.laser_pid)
+            
+            self.pid_enable_checkbox.setChecked(pid_enabled)
+            self.setpoint_spinbox.setValue(setpoint)
+            self.bandwidth_spinbox.setValue(bandwidth)
+            self.piezo_p_spinbox.setValue(piezo_p)
+            self.piezo_i_spinbox.setValue(piezo_i)
+            self.laser_p_spinbox.setValue(laser_p)
+            self.laser_i_spinbox.setValue(laser_i)
 
-            self.piezo_p_spinbox.setValue(self.get_pid_p(self.piezo_pid))
-            self.piezo_i_spinbox.setValue(self.get_pid_i(self.piezo_pid))
-            self.laser_p_spinbox.setValue(self.get_pid_p(self.laser_pid))
-            self.laser_i_spinbox.setValue(self.get_pid_i(self.laser_pid))
-
-            self.logger.info("Initial values loaded from device")
+            # Log initial values
+            self.logger.info(f"Initial values loaded from device: PID Enabled={pid_enabled}, Setpoint={setpoint:.4f} V, Bandwidth={bandwidth:.3f} kHz")
+            self.logger.info(f"Initial PID parameters: Piezo P={piezo_p}, Piezo I={piezo_i}, Laser P={laser_p}, Laser I={laser_i}")
         except Exception as e:
             self.logger.warning(f"Failed to read initial values: {e}")
 
@@ -359,6 +380,71 @@ class InterferometerControlGUI(QMainWindow):
 
         self.btn_interferometer.setChecked(current == 0)
         self.btn_cavity.setChecked(current == 9)
+
+    def is_interferometer_locked(self):
+        """Check if the interferometer is locked based on reflection signal"""
+        mean_val, std_val = self.get_average_reflection()
+        is_locked = (np.abs(mean_val) < self.locked_reflection_threshold)
+        
+        # If locked, update mode finding start/stop values around current slow offset
+        if is_locked:
+            current_slow_offset = self.slow_offset_spinbox.value()
+            # Set start to 50mV (0.05V) before current value
+            start_value = max(1.5, current_slow_offset - 0.05)
+            # Set stop to 50mV (0.05V) after current value
+            stop_value = min(6.5, current_slow_offset + 0.05)
+            
+            # Update spinboxes (thread-safe)
+            QMetaObject.invokeMethod(self.start_v_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, start_value))
+            QMetaObject.invokeMethod(self.stop_v_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, stop_value))
+        
+        return is_locked
+
+    def get_average_reflection(self, length=None, inputselect=0, sampling=None):
+        """Get average reflection signal from the device"""
+        # Don't acquire lock here - read_scope_data will handle it
+        wave, dt = self.read_scope_data(length=length, inputselect=inputselect, sampling=sampling)
+        self.logger.info(f"Reflection waveform: mean={np.mean(wave):.3f} V, std={np.std(wave):.3f} V")
+        return np.mean(wave), np.std(wave)
+
+    def read_scope_data(self, length=None, inputselect=0, sampling=None):
+        """Read and log current scope data from the device"""
+        settings = self.read_scope_settings()  # Save current settings
+        with self.mdrec_lock:
+            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/time', sampling)
+            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/length', length if length is not None else settings['length'])
+            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/channels/0/inputselect', inputselect)
+            data = get_data_scope(self.mdrec, self.device_id) 
+            dt = data[f'/{self.device_id}/scopes/0/wave'][-1][0]['dt']
+            wave = data[f'/{self.device_id}/scopes/0/wave'][-1][0]['wave'][0]
+        # Restore previous settings
+        self.set_scope_settings(settings)
+        return wave, dt
+
+    def read_scope_settings(self):
+        """Read and log current scope settings from the device"""
+        with self.mdrec_lock:
+            sampling = self.mdrec.lock_in.getInt(f'/{self.device_id}/scopes/0/time')
+            length = self.mdrec.lock_in.getInt(f'/{self.device_id}/scopes/0/length')
+            inputselect = self.mdrec.lock_in.getInt(f'/{self.device_id}/scopes/0/channels/0/inputselect')
+            settings = {
+                'sampling': sampling,
+                'length': length,
+                'inputselect': inputselect
+            }
+            #self.log(f"Scope settings: {settings}")
+            return settings
+
+    def set_scope_settings(self, settings):
+        """Set scope settings on the device"""
+        with self.mdrec_lock:
+            if 'sampling' in settings.keys():
+                self.mdrec.lock_in.setInt(f'/{self.device_id}/scopes/0/time', settings['sampling'])
+            if 'length' in settings.keys():
+                self.mdrec.lock_in.setInt(f'/{self.device_id}/scopes/0/length', settings['length'])
+            if 'inputselect' in settings.keys():
+                self.mdrec.lock_in.setInt(f'/{self.device_id}/scopes/0/channels/0/inputselect', settings['inputselect'])
+            #self.log(f"Scope settings updated to: {settings}")
 
     # ------------------------------------------------------------------
     # Event handlers - Control
@@ -410,6 +496,14 @@ class InterferometerControlGUI(QMainWindow):
         self.logger.info(f"Laser I -> {value}")
         self._set_pid_param(self.laser_pid, 'i', value)
 
+    @pyqtSlot(int)
+    def on_monitor_reflection_changed(self, state):
+        """Handle reflection monitoring checkbox state change."""
+        if state == Qt.Checked:
+            self.start_reflection_monitoring()
+        else:
+            self.stop_reflection_monitoring()
+
     # ------------------------------------------------------------------
     # Event handlers - Viewing
     # ------------------------------------------------------------------
@@ -454,6 +548,52 @@ class InterferometerControlGUI(QMainWindow):
         voltage = midpoint - amplitude * np.cos(angle_rad)
 
         self.calibration_output.setValue(voltage)
+
+    # ------------------------------------------------------------------
+    # Reflection Monitoring
+    # ------------------------------------------------------------------
+    def start_reflection_monitoring(self):
+        """Start background thread for reflection monitoring."""
+        if not self.reflection_thread_running:
+            self.reflection_thread_running = True
+            self.reflection_thread = threading.Thread(target=self._reflection_monitor_loop, daemon=True)
+            self.reflection_thread.start()
+            self.logger.info("Reflection monitoring started")
+
+    def stop_reflection_monitoring(self):
+        """Stop reflection monitoring thread."""
+        if self.reflection_thread_running:
+            self.reflection_thread_running = False
+            if self.reflection_thread:
+                self.reflection_thread.join(timeout=1.0)
+            self.logger.info("Reflection monitoring stopped")
+
+    def _reflection_monitor_loop(self):
+        """Background thread loop that monitors reflection signal every 5 seconds."""
+        import time
+        while self.reflection_thread_running:
+            try:
+                # Read scope data (using interferometer input)
+                wave, dt = self.read_scope_data(inputselect=0)
+                mean_val = np.mean(wave)
+                std_val = np.std(wave)
+                
+                # Log the reflection state
+                self.logger.info(f"Reflection: mean={mean_val:.4f} V, std={std_val:.4f} V")
+                
+            except Exception as e:
+                self.logger.warning(f"Error reading reflection: {e}")
+            
+            # Wait 5 seconds (check every 0.1s to allow quick shutdown)
+            for _ in range(50):
+                if not self.reflection_thread_running:
+                    break
+                time.sleep(0.1)
+
+    def closeEvent(self, event):
+        """Stop monitoring threads on window close."""
+        self.stop_reflection_monitoring()
+        event.accept()
 
 
 # ======================================================================

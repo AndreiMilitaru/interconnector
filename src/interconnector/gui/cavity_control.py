@@ -137,6 +137,7 @@ class CavityControlGUI(QMainWindow):
         # Add GUI handler after text_edit is created (in init_ui)
         gui_handler = QTextEditLogger(self.log_text_edit)
         gui_handler.setFormatter(formatter)
+        gui_handler.setLevel(logging.WARNING)  # GUI only shows WARNING and above
         self.logger.addHandler(gui_handler)
         
         # Mode finding stop flag
@@ -287,17 +288,34 @@ class CavityControlGUI(QMainWindow):
         self.dither_enable_checkbox.blockSignals(True)
         
         # Set values
-        self.p_gain_spinbox.setValue(self.get_mdrec_p_gain())
-        self.i_gain_spinbox.setValue(self.get_mdrec_i_gain())
-        self.bandwidth_spinbox.setValue(self.get_mdrec_bandwidth())
-        self.pid_enable_checkbox.setChecked(self.get_mdrec_pid_enabled())
-        self.keep_i_checkbox.setChecked(self.get_mdrec_keep_i())
+        p_gain = self.get_mdrec_p_gain()
+        i_gain = self.get_mdrec_i_gain()
+        bandwidth = self.get_mdrec_bandwidth()
+        pid_enabled = self.get_mdrec_pid_enabled()
+        keep_i = self.get_mdrec_keep_i()
+        
+        self.p_gain_spinbox.setValue(p_gain)
+        self.i_gain_spinbox.setValue(i_gain)
+        self.bandwidth_spinbox.setValue(bandwidth)
+        self.pid_enable_checkbox.setChecked(pid_enabled)
+        self.keep_i_checkbox.setChecked(keep_i)
+        
+        # Log initial PID values
+        self.logger.info(f"Initial PID values: P={p_gain}, I={i_gain}, Bandwidth={bandwidth} Hz, Enabled={pid_enabled}, Keep I={keep_i}")
         
         # Set dither and demodulation values
-        self.dither_freq_spinbox.setValue(self.get_mdrec_dither_freq())
-        self.dither_strength_spinbox.setValue(self.get_mdrec_dither_strength() * 1000.0)  # Convert V to mV
-        self.demod_phase_spinbox.setValue(self.get_mdrec_demod_phase())
-        self.dither_enable_checkbox.setChecked(self.get_mdrec_dither_enable())
+        dither_freq = self.get_mdrec_dither_freq()
+        dither_strength = self.get_mdrec_dither_strength() * 1000.0  # Convert V to mV
+        demod_phase = self.get_mdrec_demod_phase()
+        dither_enabled = self.get_mdrec_dither_enable()
+        
+        self.dither_freq_spinbox.setValue(dither_freq)
+        self.dither_strength_spinbox.setValue(dither_strength)
+        self.demod_phase_spinbox.setValue(demod_phase)
+        self.dither_enable_checkbox.setChecked(dither_enabled)
+        
+        # Log initial dither values
+        self.logger.info(f"Initial dither values: Freq={dither_freq} Hz, Strength={dither_strength} mV, Phase={demod_phase} deg, Enabled={dither_enabled}")
         
         # Get offset value first and block signals
         self.offset_spinbox.blockSignals(True)
@@ -305,6 +323,9 @@ class CavityControlGUI(QMainWindow):
         
         # Get current offset value from device
         offset_value = self.get_mdrec_output_offset()
+        
+        # Log initial offset
+        self.logger.info(f"Initial PID output offset: {offset_value} V")
         
         # Set base offset to the device value and initialize fine adjustment to 0
         self.base_offset = offset_value
@@ -344,6 +365,9 @@ class CavityControlGUI(QMainWindow):
             slow_offset_value = 4.0
         
         self.slow_offset_base = slow_offset_value  # Initialize base value
+        
+        # Log initial slow offset
+        self.logger.info(f"Initial slow offset: {slow_offset_value} V")
         
         # Set controls with actual value from device
         self.slow_offset_spinbox.setValue(slow_offset_value)
@@ -396,11 +420,18 @@ class CavityControlGUI(QMainWindow):
             self.waveform_combo.setCurrentIndex(0)
         
         amplitude_mv = self.get_fg_amplitude()
+        frequency = self.get_fg_frequency()
+        fg_offset = self.get_fg_offset()
+        output_enabled = self.get_fg_output_enabled()
+        
         self.amplitude_spinbox.setValue(amplitude_mv)
         self.amplitude_fine_slider.setValue(0)  # Reset fine adjustment to 0
         self.amplitude_fine_label.setText("0 mV")
         
-        self.freq_spinbox.setValue(self.get_fg_frequency())
+        self.freq_spinbox.setValue(frequency)
+        
+        # Log initial FG values
+        self.logger.info(f"Initial function generator values: Waveform={waveform}, Amplitude={amplitude_mv} mV, Frequency={frequency} Hz, Offset={fg_offset} mV, Output={output_enabled}")
         
         # Calculate offset from amplitude (should be amplitude/2)
         if not self.keep_offset_zero:
@@ -409,7 +440,7 @@ class CavityControlGUI(QMainWindow):
             offset_mv = 0.0
         self.fg_offset_spinbox.setValue(offset_mv)
         
-        self.output_checkbox.setChecked(self.get_fg_output_enabled())
+        self.output_checkbox.setChecked(output_enabled)
         
         # Unblock signals
         self.waveform_combo.blockSignals(False)
@@ -1376,7 +1407,7 @@ class CavityControlGUI(QMainWindow):
             self.offset_monitor_thread_running = True
             self.offset_monitor_thread = threading.Thread(target=self._offset_monitor_loop, daemon=True)
             self.offset_monitor_thread.start()
-            self.logger.info("Offset monitoring started")
+            self.logger.warning("Offset monitoring started")
     
     def stop_offset_monitoring(self):
         """Stop the background thread for offset monitoring"""
@@ -1384,7 +1415,7 @@ class CavityControlGUI(QMainWindow):
             self.offset_monitor_thread_running = False
             if self.offset_monitor_thread:
                 self.offset_monitor_thread.join(timeout=2.0)
-            self.logger.info("Offset monitoring stopped")
+            self.logger.warning("Offset monitoring stopped")
     
     def _offset_monitor_loop(self):
         """Background thread loop to monitor and update offset spinbox when PID is enabled"""
@@ -1482,7 +1513,7 @@ class CavityControlGUI(QMainWindow):
                                 # We got the lock, release it and start mode finding
                                 self.routine_lock.release()
                                 try:
-                                    self.logger.info("Lock lost! Starting mode finding routine...")
+                                    self.logger.warning("Lock lost! Starting mode finding routine...")
                                     self.mode_finding_routine()
                                 except Exception as e:
                                     self.logger.error(f"Error during mode finding: {str(e)}")
@@ -1504,7 +1535,7 @@ class CavityControlGUI(QMainWindow):
             self.auto_offset_thread_running = True
             self.auto_offset_thread = threading.Thread(target=self._auto_offset_loop, daemon=True)
             self.auto_offset_thread.start()
-            self.logger.info("Auto offset management started")
+            self.logger.warning("Auto offset management started")
     
     def stop_auto_offset_management(self):
         """Stop the background thread for automatic offset management"""
@@ -1513,7 +1544,7 @@ class CavityControlGUI(QMainWindow):
             if self.auto_offset_thread:
                 self.auto_offset_thread.join(timeout=3.0)
             self.auto_offset_status_label.setText("Idle")
-            self.logger.info("Auto offset management stopped")
+            self.logger.warning("Auto offset management stopped")
     
     def _auto_offset_loop(self):
         """Background thread loop to monitor and adjust offset"""
@@ -1525,10 +1556,10 @@ class CavityControlGUI(QMainWindow):
                 # Check if ramping is needed
                 if self.is_cavity_locked():
                     if current_offset < 0.05:
-                        self.logger.info(f"Output offset {current_offset:.3f}V below threshold, starting ramp up")
+                        self.logger.warning(f"Output offset {current_offset:.3f}V below threshold, starting ramp up")
                         self._ramp_slow_offset(direction='up')
                     elif current_offset > 0.95:
-                        self.logger.info(f"Output offset {current_offset:.3f}V above threshold, starting ramp down")
+                        self.logger.warning(f"Output offset {current_offset:.3f}V above threshold, starting ramp down")
                         self._ramp_slow_offset(direction='down')
                     else:
                         self.auto_offset_status_label.setText(f"Monitoring")
@@ -1586,7 +1617,7 @@ class CavityControlGUI(QMainWindow):
             # Perform 30 steps
             for i in range(30):
                 if self.mode_finding_stop_requested or not self.auto_offset_thread_running:
-                    self.logger.info("Ramping stopped by user")
+                    self.logger.warning("Ramping stopped by user")
                     break
                     
                 # Get current slow offset and calculate new value
@@ -1860,7 +1891,7 @@ class CavityControlGUI(QMainWindow):
             QMetaObject.invokeMethod(self.slow_offset_fine_slider, "setValue", Qt.QueuedConnection, Q_ARG(int, 0))
             
             found_mode = False
-            wave, dt = self.read_scope_data(length=16384)
+            wave, dt = self.read_scope_data()
             num_peaks = self.number_of_peaks(wave=wave)
             if num_peaks >= 5:
                 self.logger.info(f'Initial number of peaks at start offset {current_offset:.3f} V is {num_peaks}, starting regularity check.')
@@ -1874,7 +1905,7 @@ class CavityControlGUI(QMainWindow):
                     dir = 1 
                     new_offset = current_offset + dir*step_v
                     QMetaObject.invokeMethod(self.slow_offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, new_offset))
-                    wave, dt = self.read_scope_data(length=16384)
+                    wave, dt = self.read_scope_data()
                     regularity = self.find_peak_spacing_regularity(wave=wave)
                     if regularity > prev_regularity:
                         dir = -1  # Reverse direction
@@ -1889,10 +1920,10 @@ class CavityControlGUI(QMainWindow):
                         current_offset += dir*step_v
                         QMetaObject.invokeMethod(self.slow_offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, current_offset))
                         time.sleep(delay_s)
-                        wave, dt = self.read_scope_data(length=16384)
+                        wave, dt = self.read_scope_data()
                         regularity = self.find_peak_spacing_regularity(wave=wave)
                         if regularity < regularity_threshold:
-                            self.logger.info(f'Regularity threshold met at offset {current_offset:.3f} V (regularity={regularity:.4f}).')
+                            self.logger.warning(f'Regularity threshold met at offset {current_offset:.3f} V (regularity={regularity:.4f}).')
                             found_mode = True
                             break
                         attempts += 1
@@ -1904,13 +1935,13 @@ class CavityControlGUI(QMainWindow):
                 time.sleep(1.0)  # Wait for offset to settle
                 while current_offset <= stop_v:
                     if self.mode_finding_stop_requested:
-                        self.logger.info("Mode finding stopped by user")
+                        self.logger.warning("Mode finding stopped by user")
                         break
                         
-                    wave, dt = self.read_scope_data(length=16384)
+                    wave, dt = self.read_scope_data()
                     regularity = self.find_peak_spacing_regularity(wave=wave)
                     if regularity < regularity_threshold:
-                        self.logger.info(f'Regularity threshold met at offset {current_offset:.3f} V (regularity={regularity:.4f}).')
+                        self.logger.warning(f'Regularity threshold met at offset {current_offset:.3f} V (regularity={regularity:.4f}).')
                         found_mode = True
                         break
                     current_offset += step_v
@@ -1921,7 +1952,7 @@ class CavityControlGUI(QMainWindow):
             QMetaObject.invokeMethod(self.amplitude_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, prev_amplitude*1000.0))
 
             if found_mode:
-                self.logger.info(f'Found mode at offset {current_offset:.3f} V')
+                self.logger.warning(f'Found mode at offset {current_offset:.3f} V')
                 self.logger.info('Starting fine alignment phase...\n\n')
                 
                 initial_offset = self.offset_spinbox.value()
@@ -1933,7 +1964,7 @@ class CavityControlGUI(QMainWindow):
                     if self.mode_finding_stop_requested:
                         self.logger.info("Mode finding stopped by user")
                         break
-                    wave, dt = self.read_scope_data(length=16384)
+                    wave, dt = self.read_scope_data()
                     regularity = self.find_peak_spacing_regularity(wave=wave)
                     if regularity < fine_regularity_threshold:
                         self.logger.info(f'Fine regularity threshold met at offset {current_offset:.3f} V (regularity={regularity:.4f}).')
@@ -1942,7 +1973,7 @@ class CavityControlGUI(QMainWindow):
                     QMetaObject.invokeMethod(self.offset_spinbox, "setValue", Qt.QueuedConnection, Q_ARG(float, current_offset))
                     time.sleep(delay_s)
             else:
-                self.logger.info(f'No mode found between {start_v:.3f} V and {stop_v:.3f} V')
+                self.logger.warning(f'No mode found between {start_v:.3f} V and {stop_v:.3f} V')
                 self.logger.info('Restoring previous settings and re-enabling routines.')
 
             # Restore settings - thread-safe
@@ -1994,7 +2025,7 @@ class CavityControlGUI(QMainWindow):
 
     def is_cavity_locked(self):
         """Check if the cavity is locked based on reflection signal"""
-        mean_val, std_val = self.get_average_reflection(length=16384)
+        mean_val, std_val = self.get_average_reflection()
         is_locked = (np.abs(mean_val) < self.locked_reflection_threshold)
         
         # If locked, update mode finding start/stop values around current slow offset
@@ -2012,18 +2043,19 @@ class CavityControlGUI(QMainWindow):
         return is_locked
 
 
-    def get_average_reflection(self, length=4096, inputselect=9, sampling=9):
+    def get_average_reflection(self, length=None, inputselect=9, sampling=9):
         """Get average reflection signal from the device"""
         # Don't acquire lock here - read_scope_data will handle it
         wave, dt = self.read_scope_data(length=length, inputselect=inputselect, sampling=sampling)
+        self.logger.info(f"Reflection waveform: mean={np.mean(wave):.3f} V, std={np.std(wave):.3f} V")
         return np.mean(wave), np.std(wave)
 
-    def read_scope_data(self, length=4096, inputselect=9, sampling=9):
+    def read_scope_data(self, length=None, inputselect=9, sampling=None):
         """Read and log current scope data from the device"""
         settings = self.read_scope_settings()  # Save current settings
         with self.mdrec_lock:
-            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/time', sampling)
-            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/length', length)
+            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/time', sampling if sampling is not None else settings['sampling'])
+            self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/length', length if length is not None else settings['length'])
             self.mdrec.lock_in.set(f'/{self.device_id}/scopes/0/channels/0/inputselect', inputselect)
             data = get_data_scope(self.mdrec, self.device_id)
             dt = data[f'/{self.device_id}/scopes/0/wave'][-1][0]['dt']
