@@ -69,7 +69,7 @@ class CavityControlGUI(QMainWindow):
                   dither_pid=None, dither_drive_demod=None, dither_in_demod=None,
                   verbose=False, mdrec_lock=None, fg_lock=None, slow_offset=2,
                   keep_offset_zero=True, mode_finding_settings=None, mid_baseline_threshold=0.7,
-                  locked_reflection_threshold=0.7, logfile=None):
+                  locked_reflection_threshold=0.7, logfile=None, peak_threshold=0.7):
         """Initialize the GUI with optional verbose mode"""
         super().__init__(parent)
         
@@ -131,6 +131,7 @@ class CavityControlGUI(QMainWindow):
 
         self.mode_finding_settings = mode_finding_settings
         self.mid_baseline_threshold = mid_baseline_threshold
+        self.peak_threshold = peak_threshold
         # Initialize UI
         self.init_ui()
         
@@ -1788,7 +1789,7 @@ class CavityControlGUI(QMainWindow):
         if (np.max(wave) - np.min(wave)) < self.mid_baseline_threshold:
             return 0  # No signal detected
         
-        idxs = peakutils.indexes(-wave, thres=-0.7, thres_abs=True, min_dist=150)
+        idxs = peakutils.indexes(-wave, thres=-self.peak_threshold, thres_abs=True, min_dist=150)
         num_peaks = len(idxs)
         # self.log(f'Number of peaks found: {num_peaks}')
         return num_peaks
@@ -1798,7 +1799,7 @@ class CavityControlGUI(QMainWindow):
         if (np.max(wave) - np.min(wave)) < self.mid_baseline_threshold:
             return np.inf  # No signal detected
         
-        idxs = peakutils.indexes(-wave, thres=-0.7, thres_abs=True, min_dist=150)
+        idxs = peakutils.indexes(-wave, thres=-self.peak_threshold, thres_abs=True, min_dist=150)
         # Check if we have enough peaks to calculate spacing
         if len(idxs) < 5:
             # self.log(f'Not enough peaks found: {len(idxs)}')
@@ -2132,8 +2133,10 @@ def main_entry():
     dither_in_demod = 3
     slow_offset = 2  # auxout2 corresponds to Aux3 on device
 
-    locked_reflection_threshold = 0.8  # Threshold for considering the cavity locked (in V)
-    mid_baseline_threshold = 0.5  # Threshold for considering no signal in mode finding (in V)
+    reference_input_V = 6.6
+    locked_reflection_threshold = 0.8 * reference_input_V/1.5  # Threshold for considering the cavity locked (in V)
+    mid_baseline_threshold = 0.5 * reference_input_V/1.5  # Threshold for considering no signal in mode finding (in V)
+    peak_threshold = 0.7 * reference_input_V/1.5  # Threshold for peak detection in mode finding (in V)
 
     mode_finding_settings = {
         'fg_amplitude_mv': 400.0, 
@@ -2159,7 +2162,7 @@ def main_entry():
     try:
         main(mdrec=mdrec, fg=fg, device_id=device_id, dither_pid=pid_dither,    
             dither_drive_demod=dither_drive_demod, dither_in_demod=dither_in_demod,
-            verbose=verbose, mdrec_lock=mdrec_lock, fg_lock=fg_lock, logfile=logfile,
+            verbose=verbose, mdrec_lock=mdrec_lock, fg_lock=fg_lock, logfile=logfile, peak_threshold=peak_threshold,
             slow_offset=slow_offset, keep_offset_zero=keep_offset_zero, mid_baseline_threshold=mid_baseline_threshold,
             mode_finding_settings=mode_finding_settings, locked_reflection_threshold=locked_reflection_threshold)
     except Exception as e:

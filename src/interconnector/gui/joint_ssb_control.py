@@ -81,11 +81,13 @@ def main_entry():
     dither_in_demod = 3
     slow_offset = 2  # auxout2 -> Aux3 on device
 
-    locked_reflection_threshold = 0.8
-    mid_baseline_threshold = 0.5
+    reference_input_V = 6.6
+    locked_reflection_threshold = 0.8 * reference_input_V/1.5  # Threshold for considering the cavity locked (in V)
+    mid_baseline_threshold = 0.5 * reference_input_V/1.5  # Threshold for considering no signal in mode finding (in V)
+    peak_threshold = 0.7 * reference_input_V/1.5  # Threshold for peak detection in mode finding (in V)
 
     mode_finding_settings = {
-        'fg_amplitude_mv': 400.0,
+        'fg_amplitude_mv': 400.0, 
         'fg_amplitude_frequency_hz': 40.0
     }
 
@@ -131,6 +133,7 @@ def main_entry():
         slow_offset=slow_offset,
         keep_offset_zero=keep_offset_zero,
         mid_baseline_threshold=mid_baseline_threshold,
+        peak_threshold=peak_threshold,
         mode_finding_settings=mode_finding_settings,
         locked_reflection_threshold=locked_reflection_threshold,
         logfile=cavity_logfile)
