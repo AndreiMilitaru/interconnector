@@ -246,8 +246,64 @@ class AdaptiveLockLogAnalyzer:
             result[param] = self.get_time_series(param, start_date, end_date)
         
         return result
+
+    def get_performance_vs_time(self,
+                            start_date: Optional[str] = None,
+                            end_date: Optional[str] = None) -> Dict:
+        """
+        Calculate and return contrast (ratio of in_pulse to peak) and cavity rms over time.
+        
+        Contrast = in_pulse / peak
+        
+        Args:
+            start_date: Optional start date in format 'yymmdd:hhmm'
+            end_date: Optional end date in format 'yymmdd:hhmm'
+        
+        Returns:
+            Dictionary with 'timestamps', 'contrast', and 'rms' arrays
+        """
+        all_timestamps = []
+        all_contrasts = []
+        all_rms = []
+        all_peaks = []
+        
+        for log_file, data in self.parsed_data.items():
+            timestamps = data['timestamps']
+            in_pulse = data['in_pulse']
+            peak = data['peak']
+            rms = data['cavity_rms']
+            
+            # Calculate contrast (avoid division by zero)
+            contrasts = [ip / p if p != 0 else 0.0 for ip, p in zip(in_pulse, peak)]
+            
+            filtered_ts, filtered_contrasts = self._filter_by_date(
+                timestamps, contrasts, start_date, end_date
+            )
+            filtered_ts, filtered_rms = self._filter_by_date(
+                timestamps, rms, start_date, end_date
+            )
+            filtered_ts, filtered_peaks = self._filter_by_date(
+                timestamps, peak, start_date, end_date
+            )
+            all_timestamps.extend(filtered_ts)
+            all_contrasts.extend(filtered_contrasts)
+            all_rms.extend(filtered_rms)
+            all_peaks.extend(filtered_peaks)
+        if not all_timestamps:
+            return {'timestamps': np.array([]), 'contrast': np.array([]), 'rms': np.array([]), 'peaks': np.array([])}
+        
+        # Sort by timestamp
+        sorted_pairs = sorted(zip(all_timestamps, all_contrasts, all_rms, all_peaks), key=lambda x: x[0])
+        timestamps, contrasts, rms_values, peaks = zip(*sorted_pairs)
+        
+        return {
+            'timestamps': np.array(timestamps),
+            'contrast': np.array(contrasts),
+            'rms': np.array(rms_values),
+            'peaks': np.array(peaks)
+        }
     
-    def get_contrast_vs_time(self,
+    def get_control_vs_time(self,
                             start_date: Optional[str] = None,
                             end_date: Optional[str] = None) -> Dict:
         """
@@ -260,35 +316,37 @@ class AdaptiveLockLogAnalyzer:
             end_date: Optional end date in format 'yymmdd:hhmm'
         
         Returns:
-            Dictionary with 'timestamps' and 'contrast' arrays
+            Dictionary with 'timestamps', 'laser_voltage', 'cavity_voltage' arrays
         """
         all_timestamps = []
-        all_contrasts = []
+        all_laser_voltage = []
+        all_cavity_voltage = []
         
         for log_file, data in self.parsed_data.items():
             timestamps = data['timestamps']
-            in_pulse = data['in_pulse']
-            peak = data['peak']
+            laser_voltage = data['laser_offset']
+            cavity_voltage = data['cavity_position']
             
-            # Calculate contrast (avoid division by zero)
-            contrasts = [ip / p if p != 0 else 0.0 for ip, p in zip(in_pulse, peak)]
-            
-            filtered_ts, filtered_contrasts = self._filter_by_date(
-                timestamps, contrasts, start_date, end_date
+            filtered_ts, filtered_laser_voltage = self._filter_by_date(
+                timestamps, laser_voltage, start_date, end_date
+            )
+            filtered_ts, filtered_cavity_voltage = self._filter_by_date(
+                timestamps, cavity_voltage, start_date, end_date
             )
             all_timestamps.extend(filtered_ts)
-            all_contrasts.extend(filtered_contrasts)
-        
+            all_laser_voltage.extend(filtered_laser_voltage)
+            all_cavity_voltage.extend(filtered_cavity_voltage)
         if not all_timestamps:
-            return {'timestamps': np.array([]), 'contrast': np.array([])}
+            return {'timestamps': np.array([]), 'laser_voltage': np.array([]), 'cavity_voltage': np.array([])}
         
         # Sort by timestamp
-        sorted_pairs = sorted(zip(all_timestamps, all_contrasts), key=lambda x: x[0])
-        timestamps, contrasts = zip(*sorted_pairs)
+        sorted_pairs = sorted(zip(all_timestamps, all_laser_voltage, all_cavity_voltage), key=lambda x: x[0])
+        timestamps, laser_voltage, cavity_voltage = zip(*sorted_pairs)
         
         return {
             'timestamps': np.array(timestamps),
-            'contrast': np.array(contrasts)
+            'laser_voltage': np.array(laser_voltage),
+            'cavity_voltage': np.array(cavity_voltage)
         }
     
     def inspect_laser_locked(self,

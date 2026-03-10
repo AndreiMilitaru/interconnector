@@ -71,9 +71,9 @@ LASER_MID_RANGE = 0.65    # Getting closer
 LASER_FAR_RANGE = 1.0     # Almost off resonance
 
 # Cavity step size parameters (Volts)
-CAVITY_MIN_STEP = 0.0001  # Reduced from 0.0005 for finer control near minimum
-CAVITY_MAX_STEP = 0.02
-CAVITY_MIN_RANGE = 80e-3   # 80 mV - very close to minimum
+CAVITY_MIN_STEP = 0.0002  # Reduced from 0.0005 for finer control near minimum
+CAVITY_MAX_STEP = 0.08
+CAVITY_MIN_RANGE = 40e-3   # 50 mV - very close to minimum
 CAVITY_MAX_RANGE = 1300e-3  # 1300 mV - far from minimum
 
 # NEW: Gradual step reduction parameters
