@@ -11,4 +11,4 @@ from .utilities import analyze_below_threshold, transfer_mask, bootstrap_timetra
 __all__ = ['CavityLogAnalyzer', 'InterferometerLogAnalyzer', 'AdaptiveLockLogAnalyzer',
            'PhotonCountingAnalyzer', 'ZBasisPhotonCountingAnalyzer',
            'analyze_below_threshold', 'transfer_mask', 'bootstrap_timetrace',
-           'summarize_bootstrap']
+           'summarize_bootstrap', 'decimate']
