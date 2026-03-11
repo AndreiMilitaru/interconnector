@@ -338,3 +338,23 @@ def summarize_bootstrap(bootstrap_result: dict, detailed: bool = False) -> dict:
         out[key] = sub
 
     return out
+
+
+def decimate(vec, Ndec):
+    """
+    Decimate a 1-D vector by averaging non-overlapping blocks of length Ndec.
+    If the length of vec is not an integer multiple of Ndec, the excess elements
+    at the end are discarded.
+    Parameters
+    ----------
+    vec : np.ndarray
+        Input 1-D array to be decimated.
+    Ndec : int
+        Number of elements to average in each block.
+
+    Returns
+    -------
+    np.ndarray
+        Decimated 1-D array.
+    """
+    return vec[:len(vec) - len(vec) % Ndec].reshape(-1, Ndec).mean(axis=-1)
