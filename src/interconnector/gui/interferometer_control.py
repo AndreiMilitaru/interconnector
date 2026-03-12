@@ -236,6 +236,12 @@ class InterferometerControlGUI(QMainWindow):
         self.laser_i_spinbox.valueChanged.connect(self.on_laser_i_changed)
         grid.addWidget(self.laser_i_spinbox, 1, 3)
 
+        self.btn_flip_pi_signs = QPushButton("Flip PI Signs")
+        self.btn_flip_pi_signs.setToolTip(
+            "Negate P and I gains of both the piezo and laser PIDs")
+        self.btn_flip_pi_signs.clicked.connect(self.on_flip_pi_signs_clicked)
+        grid.addWidget(self.btn_flip_pi_signs, 2, 0, 1, 4)
+
         group.setLayout(grid)
         return group
 
@@ -495,6 +501,28 @@ class InterferometerControlGUI(QMainWindow):
     def on_laser_i_changed(self, value):
         self.logger.info(f"Laser I -> {value}")
         self._set_pid_param(self.laser_pid, 'i', value)
+
+    @pyqtSlot()
+    def on_flip_pi_signs_clicked(self):
+        """Negate P and I gains of both PIDs in spinboxes and on the device."""
+        for spinbox, pid, param in [
+            (self.piezo_p_spinbox, self.piezo_pid, 'p'),
+            (self.piezo_i_spinbox, self.piezo_pid, 'i'),
+            (self.laser_p_spinbox, self.laser_pid, 'p'),
+            (self.laser_i_spinbox, self.laser_pid, 'i'),
+        ]:
+            new_val = -spinbox.value()
+            spinbox.blockSignals(True)
+            spinbox.setValue(new_val)
+            spinbox.blockSignals(False)
+            self._set_pid_param(pid, param, new_val)
+        self.logger.info(
+            f"PI signs flipped: "
+            f"Piezo P={self.piezo_p_spinbox.value():.3f}, "
+            f"Piezo I={self.piezo_i_spinbox.value():.3f}, "
+            f"Laser P={self.laser_p_spinbox.value():.3f}, "
+            f"Laser I={self.laser_i_spinbox.value():.3f}"
+        )
 
     @pyqtSlot(int)
     def on_monitor_reflection_changed(self, state):
