@@ -444,10 +444,11 @@ class QubitCavitySimulation:
     out_s = sim.run_sme(delta_t_bins_ns=444, ntraj=500)
     """
 
-    def __init__(self, p: SystemParams, cal: CalibrationResult, ops: dict):
+    def __init__(self, p: SystemParams, cal: CalibrationResult, ops: dict, timebin_sequence_fn=default_timebin_sequence):
         self.p   = p
         self.cal = cal
         self.ops = ops
+        self.timebin_sequence_fn = timebin_sequence_fn
 
         # cached results
         self._uncond_cache: dict = {}
@@ -542,7 +543,7 @@ class QubitCavitySimulation:
             return self._uncond_cache[key]
 
         p, ops = self.p, self.ops
-        pulses = default_timebin_sequence(delta_t_bins_ns, p)
+        pulses = self.timebin_sequence_fn(delta_t_bins_ns, p)
         Hsolve, tmax, bsb_ctrs = gen_hamiltonian_for_pulse_sequence(
             pulses, p, self.cal, ops)
 
@@ -578,7 +579,7 @@ class QubitCavitySimulation:
             return self._sme_cache[key]
 
         p, ops = self.p, self.ops
-        pulses = default_timebin_sequence(delta_t_bins_ns, p)
+        pulses = self.timebin_sequence_fn(delta_t_bins_ns, p)
         Hsolve, tmax, bsb_ctrs = gen_hamiltonian_for_pulse_sequence(
             pulses, p, self.cal, ops)
 
@@ -609,7 +610,7 @@ class QubitCavitySimulation:
         All collapse ops (including external-port photon) are incoherent.
         """
         p, ops = self.p, self.ops
-        pulses = default_timebin_sequence(delta_t_bins_ns, p)
+        pulses = self.timebin_sequence_fn(delta_t_bins_ns, p)
         Hsolve, tmax, bsb_ctrs = gen_hamiltonian_for_pulse_sequence(
             pulses, p, self.cal, ops)
 
@@ -637,10 +638,11 @@ class QubitCavityAugmentedSimulation:
     out_u = sim.run(delta_t_bins_ns=444)
     """
 
-    def __init__(self, p: SystemParams, cal: CalibrationResult, ops: dict):
+    def __init__(self, p: SystemParams, cal: CalibrationResult, ops: dict, timebin_sequence_fn=default_timebin_sequence):
         self.p   = p
         self.cal = cal
         self.ops = ops
+        self.timebin_sequence_fn = timebin_sequence_fn
 
     # -------------------------------------------------------------------------
     def _initial_rho(self):
@@ -709,7 +711,7 @@ class QubitCavityAugmentedSimulation:
             raise ValueError(f"emission_mode must be 'lindblad', 'swap', or 'shaped_swap', got {emission_mode!r}")
 
         p, ops = self.p, self.ops
-        pulses = default_timebin_sequence(delta_t_bins_ns, p)
+        pulses = self.timebin_sequence_fn(delta_t_bins_ns, p)
         Hsolve, tmax, bsb_ctrs = gen_hamiltonian_for_pulse_sequence(
             pulses, p, self.cal, ops)
 
